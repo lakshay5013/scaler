@@ -1,13 +1,25 @@
 function getBackendBaseUrl() {
-  return (
+  const value = (
     process.env.BACKEND_API_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     "http://localhost:4000"
   );
+
+  return value.startsWith("http://") || value.startsWith("https://") ? value : `https://${value}`;
 }
 
 async function proxyRequest(request, context) {
-  const backendBaseUrl = getBackendBaseUrl().replace(/\/+$/, "");
+  let backendBaseUrl;
+
+  try {
+    backendBaseUrl = getBackendBaseUrl().replace(/\/+$/, "");
+  } catch {
+    return Response.json(
+      { message: "Backend API URL is missing or invalid" },
+      { status: 500 },
+    );
+  }
+
   const pathSegments = context.params?.path || [];
   const pathname = Array.isArray(pathSegments) ? pathSegments.join("/") : String(pathSegments || "");
   const targetUrl = new URL(`${backendBaseUrl}/api/${pathname}${request.nextUrl.search}`);
